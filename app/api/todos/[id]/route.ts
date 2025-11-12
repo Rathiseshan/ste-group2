@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { todoDB, tagDB, subtaskDB, calculateNextDueDate, Priority, RecurrencePattern, RecurrenceOptions } from '@/lib/db';
-import { getSingaporeNow } from '@/lib/timezone';
+import db, { todoDB, tagDB, subtaskDB, calculateNextDueDate, Priority, RecurrencePattern, RecurrenceOptions } from '@/lib/db';
+import { getSingaporeNow, parseSingaporeDate } from '@/lib/timezone';
 import { getTestUser } from '@/lib/test-user';
 
 interface RouteParams {
@@ -57,6 +57,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     tagIds,
     completed 
   } = body;
+
+  // Reject unknown fields
+  const allowed = new Set(['title','description','priority','status','dueAt','reminderMinutes','recurrencePattern','recurrenceOptions','tagIds','completed']);
+  for (const key of Object.keys(body || {})) {
+    if (!allowed.has(key)) {
+      return NextResponse.json({ error: `Unknown field: ${key}` }, { status: 400 });
+    }
+  }
 
   // Handle completion with recurring logic
   if (completed === true || status === 'completed') {
@@ -114,7 +122,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   if (description !== undefined) updates.description = description?.trim();
   if (priority !== undefined) updates.priority = priority as Priority;
   if (status !== undefined) updates.status = status;
-  if (dueAt !== undefined) updates.due_at = dueAt;
+  if (dueAt !== undefined) {
+    const parsed = parseSingaporeDate(dueAt);
+    if (!parsed) return NextResponse.json({ error: 'Invalid dueAt' }, { status: 400 });
+    const now = getSingaporeNow();
+    const minAllowed = new Date(now.getTime() + 60 * 1000);
+    if (parsed <= minAllowed) return NextResponse.json({ error: 'Due date must be at least 1 minute in the future' }, { status: 400 });
+    updates.due_at = dueAt;
+  }
   if (reminderMinutes !== undefined) updates.reminder_minutes = reminderMinutes;
   if (recurrencePattern !== undefined) updates.recurrence_pattern = recurrencePattern as RecurrencePattern || null;
   if (recurrenceOptions !== undefined) {

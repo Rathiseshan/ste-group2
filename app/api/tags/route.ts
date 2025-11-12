@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { tagDB } from '@/lib/db';
+import { getTestUser } from '@/lib/test-user';
 
 export async function GET(request: NextRequest) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  // TEMPORARY: Use test user for development
+  const testUser = getTestUser();
 
-  const tags = tagDB.getByUserId(session.userId);
+  const tags = tagDB.getByUserId(testUser.id);
 
   return NextResponse.json({ tags });
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
+  // TEMPORARY: Use test user for development
+  const testUser = getTestUser();
 
   const body = await request.json();
   const { name, color } = body;
@@ -27,7 +24,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const tag = tagDB.create(session.userId, name.trim(), color || '#3b82f6');
+    const tag = tagDB.create(testUser.id, name.trim(), color || '#3b82f6');
     return NextResponse.json({ tag }, { status: 201 });
   } catch (error: any) {
     if (error.message?.includes('UNIQUE constraint')) {

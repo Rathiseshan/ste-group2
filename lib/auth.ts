@@ -47,8 +47,8 @@ export async function getSession(): Promise<SessionData | null> {
   }
 
   try {
-    const verified = await jwtVerify(token, JWT_SECRET);
-    return verified.payload as SessionData;
+  const verified = await jwtVerify(token, JWT_SECRET);
+  return verified.payload as unknown as SessionData;
   } catch (error) {
     return null;
   }
@@ -73,8 +73,8 @@ export async function getSessionFromRequest(request: NextRequest): Promise<Sessi
   }
 
   try {
-    const verified = await jwtVerify(token, JWT_SECRET);
-    return verified.payload as SessionData;
+  const verified = await jwtVerify(token, JWT_SECRET);
+  return verified.payload as unknown as SessionData;
   } catch (error) {
     return null;
   }

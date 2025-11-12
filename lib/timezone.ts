@@ -44,6 +44,18 @@ export function formatForInput(date: Date | string): string {
 }
 
 /**
+ * Parse an ISO string into a Singapore-zoned Date.
+ * Returns null if parsing fails.
+ */
+export function parseSingaporeDate(isoString: string): Date | null {
+  try {
+    return toSingaporeZonedDateTime(parseISO(isoString));
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * Check if a date is in the past (Singapore time)
  */
 export function isPastDue(date: Date | string): boolean {

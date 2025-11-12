@@ -432,16 +432,14 @@ export const todoDB = {
   },
 
   getByUserId: (userId: number): Todo[] => {
+    // Order primarily by due date ascending (nulls last), then by created_at
     const stmt = db.prepare(`
-      SELECT * FROM todos 
-      WHERE user_id = ? 
-      ORDER BY 
-        CASE priority 
-          WHEN 'high' THEN 1 
-          WHEN 'medium' THEN 2 
-          WHEN 'low' THEN 3 
-        END,
-        due_at ASC
+      SELECT * FROM todos
+      WHERE user_id = ?
+      ORDER BY
+        CASE WHEN due_at IS NULL THEN 1 ELSE 0 END,
+        due_at ASC,
+        created_at ASC
     `);
     return stmt.all(userId) as Todo[];
   },
@@ -491,7 +489,8 @@ export const todoDB = {
       values.push(updates.recurrence_options);
     }
 
-    fields.push('updated_at = datetime("now")');
+    // Always update the updated_at timestamp
+    fields.push("updated_at = datetime('now')");
     values.push(id);
 
     const stmt = db.prepare(`
