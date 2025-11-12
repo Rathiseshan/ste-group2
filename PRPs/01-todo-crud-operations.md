@@ -18,7 +18,7 @@
 3. User creates a todo through the input form; client performs optimistic add while posting to `POST /api/todos`.
 4. User edits fields inline; client sends `PUT /api/todos/:id` and updates state.
 5. Completion toggles immediately update UI; API call confirms and, on failure, reverts state.
-6. Deletion removes the todo from the list, with undo snackbar allowing revert for 5 seconds.
+6. Deletion removes the todo from the list, with undo snackbar allowing revert for 5 seconds and a confirmation dialog guarding destructive actions.
 
 ## Technical Requirements
 ### Database Schema (`todos` table)
@@ -37,10 +37,10 @@
 - Add CRUD helpers `todoDB.create`, `todoDB.listByUser`, `todoDB.update`, `todoDB.delete`, `todoDB.markComplete`.
 - Use prepared statements with synchronous calls; ensure all timestamps rely on timezone helpers.
 
-### API Endpoints
 - `GET /api/todos` – returns authenticated user's todos sorted by `due_at` ascending, then `created_at`.
-- `POST /api/todos` – body: `{ title, description?, dueAtISO, reminderMinutes? }`.
-- `PUT /api/todos/[id]` – body: `{ title?, description?, dueAtISO?, reminderMinutes?, status? }`.
+- `GET /api/todos/[id]` – fetches single todo by id for detail modals or deep links.
+- `POST /api/todos` – body: `{ title, description?, dueAtISO, reminderMinutes?, priority?, recurrence? }` (extraneous fields rejected; optional fields delegated to feature-specific validators).
+- `PUT /api/todos/[id]` – body: `{ title?, description?, dueAtISO?, reminderMinutes?, status?, priority?, recurrence? }`.
 - `PATCH /api/todos/[id]/complete` – toggles completion, sets `completed_at` to now or null.
 - `DELETE /api/todos/[id]` – hard delete with cascade removing subtasks (future features rely on cascade).
 - All endpoints require active session via `getSession()`.
@@ -48,15 +48,16 @@
 ### Validation Rules
 - Title required, 3–120 chars, trim whitespace.
 - Description max 1000 chars.
-- `dueAtISO` must parse via `parseSingaporeDate` and be >= current Singapore time.
+- `dueAtISO` must parse via `parseSingaporeDate` and be ≥ current Singapore time + 1 minute buffer to avoid immediate expiry.
 - Prevent duplicate title + due date combo for same user.
 - `reminderMinutes` allowed values: `null` or from `{15,30,60,120,1440}`.
 - Reject payloads containing unknown fields.
 
 ## UI Components
 - **TodoForm**: inline form at top with inputs for title, description, datetime (timezone-aware), reminder dropdown.
-- **TodoList**: renders grouped sections (`Today`, `Upcoming`, `Past Due`).
-- **TodoItem**: interactive row with checkbox, editable fields, overflow menu (`Edit`, `Copy Link`, `Delete`).
+- **TodoList**: renders grouped sections (`Overdue`, `Active`, `Completed`) with client-side memoization to keep large lists performant.
+- **TodoItem**: interactive row with checkbox toggle, inline editing, and overflow menu (`Edit`, `Copy Link`, `Delete`).
+- **EditTodoModal**: modal form for full-detail edits including due date, reminder, priority hooks, and recurrence preview.
 - **UndoToast**: global toast shown on delete offering undo within 5 seconds.
 - Components live within `app/page.tsx` client component.
 
@@ -69,20 +70,28 @@
 
 ## Acceptance Criteria
 - Users can create todos with valid payload; data appears immediately and persists on reload.
+- Minimal payload (title only) succeeds while full payload (title + priority + reminder + recurrence hooks) routes fields to respective feature handlers without validation conflicts.
 - Editing any field updates DB and UI without page refresh.
 - Completion toggle works across refreshes and sets `completed_at` timestamp.
 - Deletion removes todo and subtasks; undo reinstates within 5 seconds.
 - All date/times stored and displayed using Singapore timezone utilities.
 - API returns proper 400 errors with descriptive messages for validation failures.
+- UI segments todos into `Overdue`, `Active`, `Completed` lists with consistent ordering.
+- Detail view requests via `GET /api/todos/[id]` return scoped data only when user is authorized.
 
 ## Testing Requirements
 - **Unit**: Validator tests for payload rules; DB helper tests using in-memory SQLite.
 - **API Integration**: Next.js route handler tests verifying auth required, CRUD operations succeed.
 - **E2E (Playwright)**:
   - Create todo flow with optimistic UI and validation error.
+  - Create todo with title only and verify minimal payload persists.
+  - Create todo with full metadata (priority, reminder, recurrence) and confirm data persists across reloads.
   - Edit title and due date, confirm persistence after reload.
   - Complete todo, ensure completed section shows correct timestamp.
   - Delete todo, verify undo restores item.
+  - Fetch single todo via deep link that hits `GET /api/todos/[id]` and renders modal details.
+  - Attempt to create todo with past due date and observe inline validation message.
+  - Delete todo via confirmation dialog to ensure destructive action requires affirmation.
 
 ## Out of Scope
 - Priority badges, recurring logic, subtasks, tags (covered in subsequent PRPs).

@@ -19,6 +19,7 @@
 
 ## Technical Requirements
 ### Database Schema Updates
+- Add `is_recurring` (`INTEGER NOT NULL DEFAULT 0`) as convenience flag (0|1) kept in sync with `recurrence_pattern` for quick filtering.
 - Add `recurrence_pattern` (`TEXT NULL`) to `todos` table with enum values: `daily`, `weekly`, `monthly`, `yearly`.
 - Add `recurrence_options` (`TEXT NULL`) storing JSON payload for pattern-specific data:
   - Daily: `{ interval: number }` (default 1).
@@ -44,6 +45,13 @@
   4. Set `parent_todo_id` to original `parentTodoId` or current `id` if root.
   5. Return payload containing both completed todo and new instance for client update.
 - Ensure idempotence: repeated completion call on already completed recurring todo should not create duplicates.
+- Whenever recurrence is enabled/disabled, persist `is_recurring` flag in tandem with pattern to keep queries fast.
+
+### Validation Rules
+- Recurring todos must have a due date set and due date validation runs before enabling recurrence controls.
+- `interval` values must be positive integers; weekly `weekdays` array must contain 1–7 entries within 0–6 range.
+- Monthly pattern `day` coerced into valid range for target month; yearly pattern requires valid month/day combo with leap-year guard.
+- Requests omitting required recurrence fields or containing unknown keys return structured 400 responses.
 
 ### Recurrence Calculations
 - Always base calculations on Singapore time (`getSingaporeNow`, `toSingaporeZonedDateTime`).
@@ -53,14 +61,17 @@
 - Yearly: maintain month/day; adjust for leap years (Feb 29 rolls to Feb 28 unless option `preserveLeap=true`).
 
 ### Client Behavior
+- Add "Repeat" toggle (ARIA-described) to todo form; enabling it reveals recurrence controls.
 - Update todo form with "Recurring" section showing pattern dropdown, interval input, and pattern-specific controls.
 - Display recurrence summary chip on todo item (e.g., `Repeats every Mon`).
 - When completion response contains `nextTodo`, insert into UI list, preserving optimistic experience.
 - Allow editing recurrence; unsaved changes preview new summary text.
+- Disable recurrence controls until a valid due date exists to satisfy validation requirements and show inline helper text if missing.
+- Recurrence summary badge prepends `🔄` icon and adapts copy like `🔄 Every week on Mon`.
 
 ## UI Components
 - **RecurrenceEditor**: rendered within create/edit modal; includes validation feedback.
-- **RecurrenceSummary**: small text/badge summarizing schedule, reused in list and detail view.
+- **RecurrenceSummary**: small text/badge prefixed with `🔄` icon summarizing schedule, reused in list and detail view.
 - **NextOccurrencePreview**: optional inline hint showing next due date before saving.
 
 ## Edge Cases
@@ -69,6 +80,7 @@
 - Monthly recurrence on day 31 for months without 31 days → clamp to last day and persist decision in options.
 - Weekly pattern with multiple weekdays should schedule next date correctly even if due_at was manually shifted.
 - Disabling recurrence should leave historical occurrences untouched.
+- Attempting to enable recurrence without due date should surface validation message and keep toggle off.
 
 ## Acceptance Criteria
 - Recurrence metadata stored in DB and returned via API for all new/updated todos.
@@ -76,6 +88,7 @@
 - UI shows recurrence badges and allows editing/removing patterns.
 - API prevents invalid combinations (e.g., negative intervals, empty weekdays array).
 - Re-enabling recurrence on completed todo continues series using most recent due date as anchor.
+- Recurrence controls remain disabled until a valid due date is present and summary badge displays `🔄` iconography consistently.
 
 ## Testing Requirements
 - **Unit**: `calculateNextDueDate` covering edge cases (month-end, leap year, multi-weekday).
@@ -83,7 +96,10 @@
 - **E2E (Playwright)**:
   - Create daily recurring todo; complete twice; ensure new instance appears with updated due date.
   - Weekly recurrence selecting Monday & Thursday; verify next occurrence cycles correctly.
+  - Complete recurring todo and confirm next instance inherits priority, reminder, and tags.
   - Disable recurrence and confirm no further instances generate.
+  - Monthly recurrence on 31st auto-adjusts for shorter months while preserving summary badge.
+  - Yearly recurrence covering Feb 29 gracefully shifts to Feb 28 on non-leap years.
 
 ## Out of Scope
 - Custom cron expressions or business-day schedules.

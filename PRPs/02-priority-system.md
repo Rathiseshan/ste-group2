@@ -37,12 +37,13 @@
 - Update creation form with segmented control (`High`, `Medium`, `Low`).
 - Render priority badges using Tailwind classes: e.g., High → red, Medium → amber, Low → teal.
 - Sorting logic: `todos.sort` by priority weight (`high:0`, `medium:1`, `low:2`) then `due_at`, leverage memoized selector hooks.
-- Filtering: maintain `selectedPriority` state (`'all' | Priority`), applied client-side before rendering sections.
+- Filtering: maintain `selectedPriority` state (`'all' | Priority`), applied client-side before rendering sections with chip UI on desktop and dropdown fallback on mobile.
+- Respect user theme (light/dark) by deriving badge colors from semantic Tailwind tokens that satisfy contrast requirements in both modes.
 
 ## UI Components
 - **PrioritySelector**: reusable component for todo form and inline edit.
-- **PriorityBadge**: small pill with accessible color contrast and tooltip `High priority` etc.
-- **PriorityFilterChips**: row of chips toggling priority filter; persists selection via local storage key `todo.priorityFilter`.
+- **PriorityBadge**: small pill with accessible color contrast, dark-mode friendly palette, and tooltip/ARIA label such as `High priority`.
+- **PriorityFilterChips**: row of chips toggling priority filter; persists selection via local storage key `todo.priorityFilter` and provides keyboard-accessible dropdown alternative.
 
 ## Edge Cases
 - Editing priority while offline/optimistic update fails → revert with toast message.
@@ -56,6 +57,7 @@
 - List ordering respects priority weight, then due date, then created date.
 - Priority filter works alongside text search/tag filters without conflict.
 - Color badges meet WCAG AA contrast and include ARIA labels for screen readers.
+- Theme-aware palette keeps badges legible in both light and dark modes.
 
 ## Testing Requirements
 - **Unit**: sorting helper ensures proper ordering; validator rejects invalid priority values.
@@ -64,6 +66,7 @@
   - Create todos with each priority; verify badge color and order.
   - Change priority via inline edit; confirm reorder and persisted value after refresh.
   - Use priority filter chips, ensure only matching items display.
+  - Capture visual snapshots in light and dark themes to guard contrast regressions.
 
 ## Out of Scope
 - Custom user-defined priority levels.
