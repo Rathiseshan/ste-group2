@@ -114,21 +114,22 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [x] Can disable recurring on existing todo
 
 ---
+## Advanced Features Evaluation
 
 ### ✅ Feature 04: Reminders & Notifications
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `reminder_minutes` and `last_notification_sent` fields
-- [ ] Custom hook: `useNotifications` in `lib/hooks/`
-- [ ] API endpoint: `GET /api/notifications/check`
-- [ ] "Enable Notifications" button with permission request
-- [ ] Reminder dropdown (7 timing options)
-- [ ] Reminder dropdown disabled without due date
-- [ ] Browser notification on reminder time
-- [ ] Polling system (every 30 seconds)
-- [ ] Duplicate prevention via `last_notification_sent`
-- [ ] 🔔 badge display with timing
+- [x] Database: `reminder_minutes` and `last_notification_sent` fields
+- [x] Custom hook: `useNotifications` in `lib/hooks/`
+- [x] API endpoint: `GET /api/notifications/check`
+- [x] "Enable Notifications" button with permission request
+- [x] Reminder dropdown (7 timing options)
+- [x] Reminder dropdown disabled without due date
+- [x] Browser notification on reminder time
+- [x] Polling system (every 30 seconds)
+- [x] Duplicate prevention via `last_notification_sent`
+- [x] 🔔 badge display with timing
 
 **Testing:**
 - [ ] Manual test: Enable notifications (browser permission)
@@ -139,30 +140,30 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Unit test: Reminder time calculation (Singapore timezone)
 
 **Acceptance Criteria:**
-- [ ] Permission request works
-- [ ] All 7 timing options available
-- [ ] Notifications fire at correct time
-- [ ] Only one notification per reminder
-- [ ] Works in Singapore timezone
+- [x] Permission request works
+- [x] All 7 timing options available
+- [x] Notifications fire at correct time
+- [x] Only one notification per reminder
+- [x] Works in Singapore timezone
 
 ---
 
 ### ✅ Feature 05: Subtasks & Progress Tracking
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `subtasks` table with CASCADE delete
-- [ ] API endpoint: `POST /api/todos/[id]/subtasks`
-- [ ] API endpoint: `PUT /api/subtasks/[id]`
-- [ ] API endpoint: `DELETE /api/subtasks/[id]`
-- [ ] Expandable subtasks section in UI
-- [ ] Add subtask input field
-- [ ] Subtask checkboxes
-- [ ] Delete subtask button
-- [ ] Progress bar component
-- [ ] Progress calculation (completed/total * 100)
-- [ ] Progress display: "X/Y completed (Z%)"
-- [ ] Green bar at 100%, blue otherwise
+- [x] Database: `subtasks` table with CASCADE delete
+- [x] API endpoint: `POST /api/todos/[id]/subtasks`
+- [x] API endpoint: `PUT /api/subtasks/[id]`
+- [x] API endpoint: `DELETE /api/subtasks/[id]`
+- [x] Expandable subtasks section in UI
+- [x] Add subtask input field
+- [x] Subtask checkboxes
+- [x] Delete subtask button
+- [x] Progress bar component
+- [x] Progress calculation (completed/total * 100)
+- [x] Progress display: "X/Y completed (Z%)"
+- [x] Green bar at 100%, blue otherwise
 
 **Testing:**
 - [ ] E2E test: Expand subtasks section
@@ -174,32 +175,32 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Unit test: Progress calculation
 
 **Acceptance Criteria:**
-- [ ] Can add unlimited subtasks
-- [ ] Can toggle completion
-- [ ] Progress updates in real-time
-- [ ] Visual progress bar accurate
-- [ ] Cascade delete works
+- [x] Can add unlimited subtasks
+- [x] Can toggle completion
+- [x] Progress updates in real-time
+- [x] Visual progress bar accurate
+- [x] Cascade delete works
 
 ---
 
 ### ✅ Feature 06: Tag System
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `tags` and `todo_tags` tables
-- [ ] API endpoint: `GET /api/tags`
-- [ ] API endpoint: `POST /api/tags`
-- [ ] API endpoint: `PUT /api/tags/[id]`
-- [ ] API endpoint: `DELETE /api/tags/[id]`
-- [ ] API endpoint: `POST /api/todos/[id]/tags`
-- [ ] API endpoint: `DELETE /api/todos/[id]/tags`
-- [ ] "Manage Tags" modal
-- [ ] Tag creation form (name + color picker)
-- [ ] Tag list with edit/delete buttons
-- [ ] Tag selection in todo form (checkboxes)
-- [ ] Tag badges on todos (colored)
-- [ ] Click badge to filter by tag
-- [ ] Tag filter indicator with clear button
+- [x] Database: `tags` and `todo_tags` tables
+- [x] API endpoint: `GET /api/tags`
+- [x] API endpoint: `POST /api/tags`
+- [x] API endpoint: `PUT /api/tags/[id]`
+- [x] API endpoint: `DELETE /api/tags/[id]`
+- [x] API endpoint: `POST /api/todos/[id]/tags`
+- [x] API endpoint: `DELETE /api/todos/[id]/tags`
+- [x] "Manage Tags" modal
+- [x] Tag creation form (name + color picker)
+- [x] Tag list with edit/delete buttons
+- [x] Tag selection in todo form (checkboxes)
+- [x] Tag badges on todos (colored)
+- [x] Click badge to filter by tag
+- [x] Tag filter indicator with clear button
 
 **Testing:**
 - [ ] E2E test: Create tag
@@ -211,32 +212,32 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Unit test: Tag name validation
 
 **Acceptance Criteria:**
-- [ ] Tags unique per user
-- [ ] Custom colors work
-- [ ] Editing tag updates all todos
-- [ ] Deleting tag removes from todos
-- [ ] Filter works correctly
+- [x] Tags unique per user
+- [x] Custom colors work
+- [x] Editing tag updates all todos
+- [x] Deleting tag removes from todos
+- [x] Filter works correctly
 
 ---
 
 ### ✅ Feature 07: Template System
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `templates` table
-- [ ] API endpoint: `GET /api/templates`
-- [ ] API endpoint: `POST /api/templates`
-- [ ] API endpoint: `PUT /api/templates/[id]`
-- [ ] API endpoint: `DELETE /api/templates/[id]`
-- [ ] API endpoint: `POST /api/templates/[id]/use`
+- [x] Database: `templates` table
+- [x] API endpoint: `GET /api/templates`
+- [x] API endpoint: `POST /api/templates`
+- [x] API endpoint: `PUT /api/templates/[id]`
+- [x] API endpoint: `DELETE /api/templates/[id]`
+- [x] API endpoint: `POST /api/templates/[id]/use`
 - [ ] "Save as Template" button
 - [ ] Save template modal (name, description, category)
 - [ ] "Use Template" button
 - [ ] Template selection modal
 - [ ] Category filter in template modal
 - [ ] Template preview (shows settings)
-- [ ] Subtasks JSON serialization
-- [ ] Due date offset calculation
+- [x] Subtasks JSON serialization
+- [x] Due date offset calculation
 
 **Testing:**
 - [ ] E2E test: Save todo as template
@@ -249,9 +250,9 @@ This document provides a comprehensive checklist for evaluating the completeness
 
 **Acceptance Criteria:**
 - [ ] Can save current todo as template
-- [ ] Templates include all metadata
-- [ ] Using template creates new todo
-- [ ] Subtasks recreated from JSON
+- [x] Templates include all metadata
+- [x] Using template creates new todo
+- [x] Subtasks recreated from JSON
 - [ ] Category filtering works
 
 ---

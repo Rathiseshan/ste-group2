@@ -698,6 +698,72 @@ export const templateDB = {
     return stmt.all(userId) as Template[];
   },
 
+  update: (
+    id: number,
+    options: {
+      name?: string;
+      description?: string;
+      category?: string;
+      priority?: Priority;
+      reminderMinutes?: number;
+      recurrencePattern?: RecurrencePattern;
+      recurrenceOptions?: RecurrenceOptions;
+      subtasksJson?: string | null;
+      dueDaysOffset?: number;
+    }
+  ): Template => {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (options.name !== undefined) {
+      fields.push('name = ?');
+      values.push(options.name);
+    }
+    if (options.description !== undefined) {
+      fields.push('description = ?');
+      values.push(options.description || null);
+    }
+    if (options.category !== undefined) {
+      fields.push('category = ?');
+      values.push(options.category || null);
+    }
+    if (options.priority !== undefined) {
+      fields.push('priority = ?');
+      values.push(options.priority);
+    }
+    if (options.reminderMinutes !== undefined) {
+      fields.push('reminder_minutes = ?');
+      values.push(options.reminderMinutes || null);
+    }
+    if (options.recurrencePattern !== undefined) {
+      fields.push('recurrence_pattern = ?');
+      values.push(options.recurrencePattern || null);
+    }
+    if (options.recurrenceOptions !== undefined) {
+      fields.push('recurrence_options = ?');
+      values.push(options.recurrenceOptions ? JSON.stringify(options.recurrenceOptions) : null);
+    }
+    if (options.subtasksJson !== undefined) {
+      fields.push('subtasks_json = ?');
+      values.push(options.subtasksJson);
+    }
+    if (options.dueDaysOffset !== undefined) {
+      fields.push('due_days_offset = ?');
+      values.push(options.dueDaysOffset);
+    }
+
+    if (fields.length === 0) {
+      // No fields to update, return existing template
+      return templateDB.getById(id)!;
+    }
+
+    values.push(id);
+    const stmt = db.prepare(`UPDATE templates SET ${fields.join(', ')} WHERE id = ?`);
+    stmt.run(...values);
+
+    return templateDB.getById(id)!;
+  },
+
   delete: (id: number): void => {
     const stmt = db.prepare('DELETE FROM templates WHERE id = ?');
     stmt.run(id);

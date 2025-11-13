@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Priority, RecurrencePattern, Todo, Tag } from '@/lib/db';
+import { useNotifications } from '@/lib/hooks/useNotifications';
 
 interface TodoWithRelations extends Todo {
   tags: Tag[];
@@ -43,9 +44,34 @@ export default function Home() {
   // Filter state
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all');
 
+  // Subtask state
+  const [expandedTodoId, setExpandedTodoId] = useState<number | null>(null);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+
+  // Tag management state
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [editingTagId, setEditingTagId] = useState<number | null>(null);
+  const [tagName, setTagName] = useState('');
+  const [tagColor, setTagColor] = useState('#3B82F6'); // Default blue
+  const [tagFilter, setTagFilter] = useState<number | null>(null);
+
+  // Template state
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [savingTodoId, setSavingTodoId] = useState<number | null>(null);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [templateCategory, setTemplateCategory] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
+
+  // Notifications hook
+  const { permission, enabled, setEnabled, requestPermission } = useNotifications();
+
   useEffect(() => {
     fetchTodos();
     fetchTags();
+    fetchTemplates();
   }, []);
 
   const fetchTodos = async () => {
@@ -67,6 +93,16 @@ export default function Home() {
       setTags(data.tags);
     } catch (error) {
       console.error('Failed to fetch tags:', error);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await fetch('/api/templates');
+      const data = await response.json();
+      setTemplates(data.templates);
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
     }
   };
 
@@ -304,6 +340,263 @@ export default function Home() {
     setShowForm(false);
   };
 
+  const handleAddSubtask = async (todoId: number) => {
+    if (!newSubtaskTitle.trim()) return;
+
+    try {
+      const response = await fetch(`/api/todos/${todoId}/subtasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newSubtaskTitle }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTodos(todos.map(t => 
+          t.id === todoId ? { ...t, subtasks: [...t.subtasks, data.subtask] } : t
+        ));
+        setNewSubtaskTitle('');
+      }
+    } catch (error) {
+      console.error('Failed to add subtask:', error);
+    }
+  };
+
+  const handleToggleSubtask = async (subtaskId: number, completed: boolean, todoId: number) => {
+    try {
+      const response = await fetch(`/api/subtasks/${subtaskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTodos(todos.map(t => 
+          t.id === todoId 
+            ? { ...t, subtasks: t.subtasks.map(s => s.id === subtaskId ? data.subtask : s) }
+            : t
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to toggle subtask:', error);
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: number, todoId: number) => {
+    try {
+      const response = await fetch(`/api/subtasks/${subtaskId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setTodos(todos.map(t => 
+          t.id === todoId 
+            ? { ...t, subtasks: t.subtasks.filter(s => s.id !== subtaskId) }
+            : t
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to delete subtask:', error);
+    }
+  };
+
+  const calculateProgress = (subtasks: any[]) => {
+    if (subtasks.length === 0) return { completed: 0, total: 0, percentage: 0 };
+    const completed = subtasks.filter(s => s.completed).length;
+    const total = subtasks.length;
+    const percentage = Math.round((completed / total) * 100);
+    return { completed, total, percentage };
+  };
+
+  const handleCreateTag = async () => {
+    if (!tagName.trim()) return;
+
+    try {
+      const response = await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tagName, color: tagColor }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTags([...tags, data.tag]);
+        setTagName('');
+        setTagColor('#3B82F6');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to create tag');
+      }
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+    }
+  };
+
+  const handleUpdateTag = async (tagId: number) => {
+    if (!tagName.trim()) return;
+
+    try {
+      const response = await fetch(`/api/tags/${tagId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: tagName, color: tagColor }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTags(tags.map(t => t.id === tagId ? data.tag : t));
+        setEditingTagId(null);
+        setTagName('');
+        setTagColor('#3B82F6');
+      }
+    } catch (error) {
+      console.error('Failed to update tag:', error);
+    }
+  };
+
+  const handleDeleteTag = async (tagId: number) => {
+    if (!confirm('Delete this tag? It will be removed from all todos.')) return;
+
+    try {
+      const response = await fetch(`/api/tags/${tagId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setTags(tags.filter(t => t.id !== tagId));
+        // Refresh todos to update tag relationships
+        fetchTodos();
+      }
+    } catch (error) {
+      console.error('Failed to delete tag:', error);
+    }
+  };
+
+  const handleEditTag = (tag: Tag) => {
+    setEditingTagId(tag.id);
+    setTagName(tag.name);
+    setTagColor(tag.color);
+  };
+
+  const handleCancelTagEdit = () => {
+    setEditingTagId(null);
+    setTagName('');
+    setTagColor('#3B82F6');
+  };
+
+  // Template handlers
+  const handleSaveAsTemplate = (todoId: number) => {
+    setSavingTodoId(todoId);
+    setShowSaveTemplateModal(true);
+  };
+
+  const handleCreateTemplate = async () => {
+    if (!templateName.trim() || !savingTodoId) {
+      alert('Template name is required');
+      return;
+    }
+
+    const todo = todos.find(t => t.id === savingTodoId);
+    if (!todo) return;
+
+    // Calculate due date offset if todo has a due date
+    let dueDaysOffset = 0;
+    if (todo.due_at) {
+      const now = new Date();
+      const dueDate = new Date(todo.due_at);
+      const diffTime = dueDate.getTime() - now.getTime();
+      dueDaysOffset = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    // Prepare subtasks for serialization
+    const subtasks = todo.subtasks.map((st: any, index: number) => ({
+      title: st.title,
+      position: index,
+    }));
+
+    try {
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName.trim(),
+          description: templateDescription.trim() || null,
+          category: templateCategory.trim() || null,
+          priority: todo.priority,
+          reminder_minutes: todo.reminder_minutes,
+          recurrence_pattern: todo.recurrence_pattern,
+          recurrence_options: todo.recurrence_options,
+          due_days_offset: dueDaysOffset,
+          subtasks: subtasks.length > 0 ? subtasks : null,
+        }),
+      });
+
+      if (response.ok) {
+        fetchTemplates();
+        setShowSaveTemplateModal(false);
+        setTemplateName('');
+        setTemplateDescription('');
+        setTemplateCategory('');
+        setSavingTodoId(null);
+        alert('Template saved successfully!');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to save template');
+      }
+    } catch (error) {
+      console.error('Failed to create template:', error);
+      alert('Failed to save template');
+    }
+  };
+
+  const handleUseTemplate = async (templateId: number) => {
+    const customTitle = prompt('Enter a title for the new todo:');
+    if (!customTitle || !customTitle.trim()) return;
+
+    try {
+      const response = await fetch(`/api/templates/${templateId}/use`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: customTitle.trim(),
+          tag_ids: [], // Could add tag selection in the future
+        }),
+      });
+
+      if (response.ok) {
+        fetchTodos();
+        setShowTemplateModal(false);
+        alert('Todo created from template!');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to create todo from template');
+      }
+    } catch (error) {
+      console.error('Failed to use template:', error);
+      alert('Failed to create todo from template');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: number) => {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+
+    try {
+      const response = await fetch(`/api/templates/${templateId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setTemplates(templates.filter(t => t.id !== templateId));
+      } else {
+        alert('Failed to delete template');
+      }
+    } catch (error) {
+      console.error('Failed to delete template:', error);
+      alert('Failed to delete template');
+    }
+  };
+
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-800 border-red-300';
@@ -335,13 +628,30 @@ export default function Home() {
     }
   };
 
+  const getReminderText = (minutes: number | null | undefined) => {
+    if (!minutes) return null;
+    if (minutes < 60) return `${minutes}m before`;
+    if (minutes < 1440) return `${minutes / 60}h before`;
+    if (minutes < 10080) return `${minutes / 1440}d before`;
+    return `${minutes / 10080}w before`;
+  };
+
   // Filter and sort todos
   const now = new Date();
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   
   let filteredTodos = todos;
+  
+  // Priority filter
   if (priorityFilter !== 'all') {
     filteredTodos = filteredTodos.filter(t => t.priority === priorityFilter);
+  }
+  
+  // Tag filter
+  if (tagFilter !== null) {
+    filteredTodos = filteredTodos.filter(t => 
+      t.tags.some(tag => tag.id === tagFilter)
+    );
   }
 
   const activeTodos = filteredTodos
@@ -390,27 +700,83 @@ export default function Home() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">My Todos</h1>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            {showForm ? 'Cancel' : 'New Todo'}
-          </button>
+          <div className="flex gap-3">
+            {/* Notifications Toggle */}
+            {permission === 'default' && (
+              <button
+                onClick={async () => {
+                  const result = await requestPermission();
+                  if (result === 'granted') setEnabled(true);
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                🔔 Enable Notifications
+              </button>
+            )}
+            {permission === 'granted' && (
+              <button
+                onClick={() => setEnabled(!enabled)}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                  enabled 
+                    ? 'bg-green-600 text-white hover:bg-green-700' 
+                    : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                }`}
+              >
+                🔔 Notifications {enabled ? 'On' : 'Off'}
+              </button>
+            )}
+            <button
+              onClick={() => setShowTagModal(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            >
+              🏷️ Manage Tags
+            </button>
+            <button
+              onClick={() => setShowTemplateModal(true)}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+            >
+              📋 Templates
+            </button>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              {showForm ? 'Cancel' : 'New Todo'}
+            </button>
+          </div>
         </div>
 
-        {/* Priority Filter */}
+        {/* Filters */}
         <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Priority:</label>
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value as Priority | 'all')}
-            className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-          >
-            <option value="all">All Priorities</option>
-            <option value="high">High Priority Only</option>
-            <option value="medium">Medium Priority Only</option>
-            <option value="low">Low Priority Only</option>
-          </select>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Priority:</label>
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value as Priority | 'all')}
+                className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              >
+                <option value="all">All Priorities</option>
+                <option value="high">High Priority Only</option>
+                <option value="medium">Medium Priority Only</option>
+                <option value="low">Low Priority Only</option>
+              </select>
+            </div>
+            
+            {tagFilter !== null && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-300 rounded-md">
+                <span className="text-sm text-gray-700">
+                  Filtered by tag: <strong>{tags.find(t => t.id === tagFilter)?.name}</strong>
+                </span>
+                <button
+                  onClick={() => setTagFilter(null)}
+                  className="text-blue-600 hover:text-blue-800 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {showForm && (
@@ -465,6 +831,28 @@ export default function Home() {
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Reminder</label>
+                <select
+                  value={formReminderMinutes || ''}
+                  onChange={(e) => setFormReminderMinutes(e.target.value ? parseInt(e.target.value) : null)}
+                  disabled={!formDueAt}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">No reminder</option>
+                  <option value="15">15 minutes before</option>
+                  <option value="30">30 minutes before</option>
+                  <option value="60">1 hour before</option>
+                  <option value="120">2 hours before</option>
+                  <option value="1440">1 day before</option>
+                  <option value="2880">2 days before</option>
+                  <option value="10080">1 week before</option>
+                </select>
+                {!formDueAt && (
+                  <p className="text-xs text-gray-500 mt-1">Set a due date to enable reminders</p>
+                )}
               </div>
 
               <div>
@@ -563,6 +951,42 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Tag Selection */}
+              {tags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Tags</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {tags.map(tag => (
+                      <label 
+                        key={tag.id} 
+                        className="flex items-center gap-2 px-3 py-2 rounded-md border-2 cursor-pointer transition-all"
+                        style={{
+                          borderColor: formSelectedTags.includes(tag.id) ? tag.color : '#e5e7eb',
+                          backgroundColor: formSelectedTags.includes(tag.id) ? tag.color + '20' : '#ffffff'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formSelectedTags.includes(tag.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormSelectedTags([...formSelectedTags, tag.id]);
+                            } else {
+                              setFormSelectedTags(formSelectedTags.filter(id => id !== tag.id));
+                            }
+                          }}
+                          className="rounded focus:ring-2 focus:ring-blue-500"
+                          style={{ accentColor: tag.color }}
+                        />
+                        <span className="text-sm font-medium" style={{ color: tag.color }}>
+                          {tag.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -616,6 +1040,12 @@ export default function Home() {
                               </span>
                             )}
                             
+                            {todo.reminder_minutes && (
+                              <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-800 border border-orange-300 flex items-center gap-1">
+                                🔔 {getReminderText(todo.reminder_minutes)}
+                              </span>
+                            )}
+                            
                             {todo.due_at && (
                               <span className="text-xs text-red-700 font-bold bg-red-100 px-2 py-1 rounded">
                                 ⚠ Overdue: {new Date(todo.due_at).toLocaleString()}
@@ -623,19 +1053,32 @@ export default function Home() {
                             )}
 
                             {todo.tags.map(tag => (
-                              <span
+                              <button
                                 key={tag.id}
-                                className="text-xs px-2 py-1 rounded"
-                                style={{ backgroundColor: tag.color + '20', color: tag.color }}
+                                onClick={() => setTagFilter(tagFilter === tag.id ? null : tag.id)}
+                                className="text-xs px-2 py-1 rounded font-medium border-2 transition-all hover:scale-105"
+                                style={{ 
+                                  backgroundColor: tag.color + '20', 
+                                  color: tag.color,
+                                  borderColor: tagFilter === tag.id ? tag.color : 'transparent'
+                                }}
+                                title={`Click to filter by ${tag.name}`}
                               >
                                 {tag.name}
-                              </span>
+                              </button>
                             ))}
                           </div>
                         </div>
                       </div>
                       
                       <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() => handleSaveAsTemplate(todo.id)}
+                          className="px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-100 rounded-md hover:bg-indigo-200 transition-colors duration-150"
+                          aria-label={`Save ${todo.title} as template`}
+                        >
+                          📋 Template
+                        </button>
                         <button
                           onClick={() => handleEditClick(todo)}
                           className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors duration-150"
@@ -692,6 +1135,12 @@ export default function Home() {
                               </span>
                             )}
                             
+                            {todo.reminder_minutes && (
+                              <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-800 border border-orange-300 flex items-center gap-1">
+                                🔔 {getReminderText(todo.reminder_minutes)}
+                              </span>
+                            )}
+                            
                             {todo.due_at && (
                               <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
                                 📅 Due: {new Date(todo.due_at).toLocaleString()}
@@ -699,19 +1148,113 @@ export default function Home() {
                             )}
 
                             {todo.tags.map(tag => (
-                              <span
+                              <button
                                 key={tag.id}
-                                className="text-xs px-2 py-1 rounded font-medium"
-                                style={{ backgroundColor: tag.color + '20', color: tag.color }}
+                                onClick={() => setTagFilter(tagFilter === tag.id ? null : tag.id)}
+                                className="text-xs px-2 py-1 rounded font-medium border-2 transition-all hover:scale-105"
+                                style={{ 
+                                  backgroundColor: tag.color + '20', 
+                                  color: tag.color,
+                                  borderColor: tagFilter === tag.id ? tag.color : 'transparent'
+                                }}
+                                title={`Click to filter by ${tag.name}`}
                               >
                                 {tag.name}
-                              </span>
+                              </button>
                             ))}
                           </div>
+
+                          {/* Subtasks Section */}
+                          {todo.subtasks.length > 0 && (
+                            <div className="mt-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="flex-1">
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className={`h-2 rounded-full transition-all duration-300 ${
+                                        calculateProgress(todo.subtasks).percentage === 100 
+                                          ? 'bg-green-500' 
+                                          : 'bg-blue-500'
+                                      }`}
+                                      style={{ width: `${calculateProgress(todo.subtasks).percentage}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <span className="text-xs text-gray-600 font-medium">
+                                  {calculateProgress(todo.subtasks).completed}/{calculateProgress(todo.subtasks).total} ({calculateProgress(todo.subtasks).percentage}%)
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => setExpandedTodoId(expandedTodoId === todo.id ? null : todo.id)}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                {expandedTodoId === todo.id ? '▼ Hide' : '▶'} {todo.subtasks.length} subtask{todo.subtasks.length !== 1 ? 's' : ''}
+                              </button>
+                            </div>
+                          )}
+
+                          {expandedTodoId === todo.id && (
+                            <div className="mt-3 space-y-2 border-t pt-3">
+                              {todo.subtasks.map((subtask: any) => (
+                                <div key={subtask.id} className="flex items-center gap-2 group">
+                                  <input
+                                    type="checkbox"
+                                    checked={subtask.completed}
+                                    onChange={(e) => handleToggleSubtask(subtask.id, e.target.checked, todo.id)}
+                                    className="rounded focus:ring-2 focus:ring-blue-500"
+                                  />
+                                  <span className={`flex-1 text-sm ${subtask.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                    {subtask.title}
+                                  </span>
+                                  <button
+                                    onClick={() => handleDeleteSubtask(subtask.id, todo.id)}
+                                    className="text-red-600 hover:text-red-800 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                              <div className="flex gap-2 mt-2">
+                                <input
+                                  type="text"
+                                  value={expandedTodoId === todo.id ? newSubtaskTitle : ''}
+                                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') handleAddSubtask(todo.id);
+                                  }}
+                                  placeholder="Add subtask..."
+                                  className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                />
+                                <button
+                                  onClick={() => handleAddSubtask(todo.id)}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Add subtask button if no subtasks */}
+                          {todo.subtasks.length === 0 && expandedTodoId !== todo.id && (
+                            <button
+                              onClick={() => setExpandedTodoId(todo.id)}
+                              className="mt-2 text-xs text-gray-500 hover:text-blue-600"
+                            >
+                              + Add subtask
+                            </button>
+                          )}
                         </div>
                       </div>
                       
                       <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() => handleSaveAsTemplate(todo.id)}
+                          className="px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors duration-150"
+                          aria-label={`Save ${todo.title} as template`}
+                        >
+                          📋 Template
+                        </button>
                         <button
                           onClick={() => handleEditClick(todo)}
                           className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors duration-150"
@@ -801,6 +1344,328 @@ export default function Home() {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tag Management Modal */}
+        {showTagModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-semibold">Manage Tags</h3>
+                <button
+                  onClick={() => {
+                    setShowTagModal(false);
+                    handleCancelTagEdit();
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close tag management"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Create/Edit Tag Form */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  {editingTagId ? 'Edit Tag' : 'Create New Tag'}
+                </h4>
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <label htmlFor="tag-name" className="block text-sm font-medium text-gray-700 mb-1">
+                      Tag Name
+                    </label>
+                    <input
+                      id="tag-name"
+                      type="text"
+                      value={tagName}
+                      onChange={(e) => setTagName(e.target.value)}
+                      placeholder="Enter tag name..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      maxLength={50}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="tag-color" className="block text-sm font-medium text-gray-700 mb-1">
+                      Color
+                    </label>
+                    <input
+                      id="tag-color"
+                      type="color"
+                      value={tagColor}
+                      onChange={(e) => setTagColor(e.target.value)}
+                      className="h-10 w-20 border border-gray-300 rounded-md cursor-pointer"
+                    />
+                  </div>
+                  {editingTagId ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleUpdateTag(editingTagId)}
+                        disabled={!tagName.trim()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Update
+                      </button>
+                      <button
+                        onClick={handleCancelTagEdit}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleCreateTag}
+                      disabled={!tagName.trim()}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Create
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Tag List */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Existing Tags</h4>
+                {tags.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No tags yet. Create one above!</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tags.map(tag => (
+                      <div
+                        key={tag.id}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-6 h-6 rounded border-2 border-gray-300"
+                            style={{ backgroundColor: tag.color }}
+                            title={`Color: ${tag.color}`}
+                          />
+                          <span className="font-medium">{tag.name}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditTag(tag)}
+                            className="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+                            aria-label={`Edit ${tag.name}`}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTag(tag.id)}
+                            className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                            aria-label={`Delete ${tag.name}`}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save Template Modal */}
+        {showSaveTemplateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold">Save as Template</h3>
+                <button
+                  onClick={() => {
+                    setShowSaveTemplateModal(false);
+                    setTemplateName('');
+                    setTemplateDescription('');
+                    setTemplateCategory('');
+                    setSavingTodoId(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Template Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="e.g., Weekly Report Template"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    maxLength={100}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={templateDescription}
+                    onChange={(e) => setTemplateDescription(e.target.value)}
+                    placeholder="Describe what this template is for..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={templateCategory}
+                    onChange={(e) => setTemplateCategory(e.target.value)}
+                    placeholder="e.g., Work, Personal, Project"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    maxLength={50}
+                  />
+                </div>
+
+                <div className="flex gap-3 justify-end pt-4">
+                  <button
+                    onClick={() => {
+                      setShowSaveTemplateModal(false);
+                      setTemplateName('');
+                      setTemplateDescription('');
+                      setTemplateCategory('');
+                      setSavingTodoId(null);
+                    }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateTemplate}
+                    disabled={!templateName.trim()}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Save Template
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Templates Library Modal */}
+        {showTemplateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-3xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-semibold">Templates Library</h3>
+                <button
+                  onClick={() => setShowTemplateModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Category Filter */}
+              {templates.some(t => t.category) && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Filter by Category:
+                  </label>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">All Categories</option>
+                    {Array.from(new Set(templates.map(t => t.category).filter(Boolean))).map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Templates List */}
+              {templates.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No templates yet. Save a todo as a template to get started!
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {templates
+                    .filter(t => categoryFilter === 'all' || t.category === categoryFilter)
+                    .map(template => (
+                      <div
+                        key={template.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg">{template.name}</h4>
+                            {template.description && (
+                              <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {template.category && (
+                                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                                  📁 {template.category}
+                                </span>
+                              )}
+                              {template.priority && (
+                                <span className={`text-xs px-2 py-1 rounded ${getPriorityColor(template.priority as Priority)}`}>
+                                  {template.priority.toUpperCase()}
+                                </span>
+                              )}
+                              {template.recurrence_pattern && (
+                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                                  🔄 {template.recurrence_pattern}
+                                </span>
+                              )}
+                              {template.reminder_minutes && (
+                                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                                  🔔 Reminder
+                                </span>
+                              )}
+                              {template.subtasks_json && (
+                                <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
+                                  ✓ {JSON.parse(template.subtasks_json).length} subtasks
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <button
+                              onClick={() => handleUseTemplate(template.id)}
+                              className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                            >
+                              Use
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTemplate(template.id)}
+                              className="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
         )}
