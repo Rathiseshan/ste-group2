@@ -233,10 +233,10 @@ export default function LoginPage() {
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-yellow-300 rounded-full opacity-60 blur-3xl transform -translate-x-1/4 translate-y-1/4"></div>
           <div className="absolute top-1/3 right-0 w-80 h-80 bg-yellow-200 rounded-full opacity-40 blur-3xl transform translate-x-1/4"></div>
           
-          {/* WELCOME Text */}
+          {/* TODO by Group2 Text */}
           <div className="relative z-10 text-white">
             <h1 className="text-7xl font-bold tracking-wider mb-4">
-              WEL<br/>COME
+              TODO<br/>by Group2
             </h1>
             <div className="w-16 h-1 bg-white mb-8"></div>
             <p className="text-white/90 text-lg">Hi! Let&apos;s get started</p>
