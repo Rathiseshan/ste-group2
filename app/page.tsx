@@ -43,6 +43,9 @@ export default function Home() {
 
   // Filter state
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
 
   // Subtask state
   const [expandedTodoId, setExpandedTodoId] = useState<number | null>(null);
@@ -73,6 +76,15 @@ export default function Home() {
     fetchTags();
     fetchTemplates();
   }, []);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchTodos = async () => {
     try {
@@ -597,6 +609,65 @@ export default function Home() {
     }
   };
 
+  // Export/Import handlers
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/todos/export');
+      const data = await response.json();
+
+      // Create downloadable file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { 
+        type: 'application/json' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `todos-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert('Export successful!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      const response = await fetch('/api/todos/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(result.message);
+        // Refresh data
+        fetchTodos();
+        fetchTags();
+      } else {
+        const error = await response.json();
+        alert(`Import failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Import failed:', error);
+      alert('Invalid file format. Please select a valid export file.');
+    }
+
+    // Reset file input
+    event.target.value = '';
+  };
+
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-800 border-red-300';
@@ -642,6 +713,17 @@ export default function Home() {
   
   let filteredTodos = todos;
   
+  // Search filter (title, description, tag names)
+  if (debouncedSearch) {
+    const query = debouncedSearch.toLowerCase();
+    filteredTodos = filteredTodos.filter(todo => {
+      const titleMatch = todo.title.toLowerCase().includes(query);
+      const descriptionMatch = todo.description?.toLowerCase().includes(query);
+      const tagMatch = todo.tags.some(tag => tag.name.toLowerCase().includes(query));
+      return titleMatch || descriptionMatch || tagMatch;
+    });
+  }
+  
   // Priority filter
   if (priorityFilter !== 'all') {
     filteredTodos = filteredTodos.filter(t => t.priority === priorityFilter);
@@ -652,6 +734,11 @@ export default function Home() {
     filteredTodos = filteredTodos.filter(t => 
       t.tags.some(tag => tag.id === tagFilter)
     );
+  }
+
+  // Status filter
+  if (statusFilter !== 'all') {
+    filteredTodos = filteredTodos.filter(t => t.status === statusFilter);
   }
 
   const activeTodos = filteredTodos
@@ -737,6 +824,31 @@ export default function Home() {
             >
               📋 Templates
             </button>
+            <a
+              href="/calendar"
+              className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 inline-block"
+            >
+              📅 Calendar
+            </a>
+            <button
+              onClick={handleExport}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+              💾 Export
+            </button>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+              id="import-file"
+            />
+            <label
+              htmlFor="import-file"
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 cursor-pointer inline-block"
+            >
+              📥 Import
+            </label>
             <button
               onClick={() => setShowForm(!showForm)}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
@@ -746,10 +858,23 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Search & Filters */}
         <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
+          {/* Search Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">🔍 Search Todos:</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by title, description, or tag name..."
+              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+            />
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Priority:</label>
               <select
                 value={priorityFilter}
@@ -762,21 +887,48 @@ export default function Home() {
                 <option value="low">Low Priority Only</option>
               </select>
             </div>
+
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Status:</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'completed')}
+                className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active Only</option>
+                <option value="completed">Completed Only</option>
+              </select>
+            </div>
             
-            {tagFilter !== null && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-300 rounded-md">
-                <span className="text-sm text-gray-700">
-                  Filtered by tag: <strong>{tags.find(t => t.id === tagFilter)?.name}</strong>
-                </span>
-                <button
-                  onClick={() => setTagFilter(null)}
-                  className="text-blue-600 hover:text-blue-800 font-bold"
-                >
-                  ✕
-                </button>
-              </div>
+            {/* Clear Filters Button */}
+            {(searchQuery || priorityFilter !== 'all' || tagFilter !== null || statusFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setPriorityFilter('all');
+                  setTagFilter(null);
+                  setStatusFilter('all');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Clear All Filters
+              </button>
             )}
           </div>
+
+          {/* Active Filters Indicator */}
+          {(debouncedSearch || priorityFilter !== 'all' || tagFilter !== null || statusFilter !== 'all') && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="text-sm text-gray-700">
+                <strong>Active filters:</strong>
+                {debouncedSearch && <span className="ml-2">Search: &ldquo;{debouncedSearch}&rdquo;</span>}
+                {priorityFilter !== 'all' && <span className="ml-2">• Priority: {priorityFilter}</span>}
+                {tagFilter !== null && <span className="ml-2">• Tag: {tags.find(t => t.id === tagFilter)?.name}</span>}
+                {statusFilter !== 'all' && <span className="ml-2">• Status: {statusFilter}</span>}
+              </div>
+            </div>
+          )}
         </div>
 
         {showForm && (
@@ -1104,7 +1256,24 @@ export default function Home() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">Active Todos</h2>
             {activeTodos.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No active todos. Create one to get started!</p>
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-lg mb-2">No active todos found</p>
+                {(debouncedSearch || priorityFilter !== 'all' || tagFilter !== null || statusFilter !== 'all') ? (
+                  <button 
+                    onClick={() => {
+                      setSearchQuery('');
+                      setPriorityFilter('all');
+                      setTagFilter(null);
+                      setStatusFilter('all');
+                    }}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Clear filters to see all todos
+                  </button>
+                ) : (
+                  <p className="text-gray-400">Create one to get started!</p>
+                )}
+              </div>
             ) : (
               <div className="space-y-3">
                 {activeTodos.map(todo => (

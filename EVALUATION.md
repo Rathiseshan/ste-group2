@@ -230,12 +230,12 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [x] API endpoint: `PUT /api/templates/[id]`
 - [x] API endpoint: `DELETE /api/templates/[id]`
 - [x] API endpoint: `POST /api/templates/[id]/use`
-- [ ] "Save as Template" button
-- [ ] Save template modal (name, description, category)
-- [ ] "Use Template" button
-- [ ] Template selection modal
-- [ ] Category filter in template modal
-- [ ] Template preview (shows settings)
+- [x] "Save as Template" button
+- [x] Save template modal (name, description, category)
+- [x] "Use Template" button
+- [x] Template selection modal
+- [x] Category filter in template modal
+- [x] Template preview (shows settings)
 - [x] Subtasks JSON serialization
 - [x] Due date offset calculation
 
@@ -249,30 +249,32 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Unit test: Subtasks JSON serialization
 
 **Acceptance Criteria:**
-- [ ] Can save current todo as template
+- [x] Can save current todo as template
 - [x] Templates include all metadata
 - [x] Using template creates new todo
 - [x] Subtasks recreated from JSON
-- [ ] Category filtering works
+- [x] Category filtering works
 
 ---
 
 ### ✅ Feature 08: Search & Filtering
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Search input field at top of page
-- [ ] Real-time filtering (no submit button)
-- [ ] Case-insensitive search
-- [ ] Search matches todo titles
-- [ ] Search matches tag names (advanced mode)
-- [ ] Priority filter dropdown
-- [ ] Tag filter (click badge)
-- [ ] Combined filters (AND logic)
-- [ ] Filter summary/indicator
-- [ ] Clear all filters button
-- [ ] Empty state for no results
-- [ ] Debounced search (300ms)
+- [x] Search input field at top of page
+- [x] Real-time filtering (no submit button)
+- [x] Case-insensitive search
+- [x] Search matches todo titles
+- [x] Search matches tag names (advanced mode)
+- [x] Search matches descriptions
+- [x] Priority filter dropdown
+- [x] Status filter dropdown (all/active/completed)
+- [x] Tag filter (click badge)
+- [x] Combined filters (AND logic)
+- [x] Filter summary/indicator
+- [x] Clear all filters button
+- [x] Empty state for no results
+- [x] Debounced search (300ms)
 
 **Testing:**
 - [ ] E2E test: Search by title
@@ -284,29 +286,29 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Performance test: Filter 1000 todos < 100ms
 
 **Acceptance Criteria:**
-- [ ] Search is case-insensitive
-- [ ] Includes tag names in search
-- [ ] Filters combine with AND
-- [ ] Real-time updates
-- [ ] Clear message for empty results
+- [x] Search is case-insensitive
+- [x] Includes tag names in search
+- [x] Filters combine with AND
+- [x] Real-time updates
+- [x] Clear message for empty results
 
 ---
 
 ### ✅ Feature 09: Export & Import
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] API endpoint: `GET /api/todos/export`
-- [ ] API endpoint: `POST /api/todos/import`
-- [ ] Export button in UI
-- [ ] Import button with file picker
-- [ ] JSON format with version field
-- [ ] Export includes: todos, subtasks, tags, associations
-- [ ] Import validation (format, required fields)
-- [ ] ID remapping on import
-- [ ] Tag name conflict resolution (reuse existing)
-- [ ] Success message with counts
-- [ ] Error handling for invalid JSON
+- [x] API endpoint: `GET /api/todos/export`
+- [x] API endpoint: `POST /api/todos/import`
+- [x] Export button in UI
+- [x] Import button with file picker
+- [x] JSON format with version field
+- [x] Export includes: todos, subtasks, tags, associations
+- [x] Import validation (format, required fields)
+- [x] ID remapping on import
+- [x] Tag name conflict resolution (reuse existing)
+- [x] Success message with counts
+- [x] Error handling for invalid JSON
 
 **Testing:**
 - [ ] E2E test: Export todos
@@ -318,31 +320,31 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Unit test: JSON validation
 
 **Acceptance Criteria:**
-- [ ] Export creates valid JSON
-- [ ] Import validates format
-- [ ] All relationships preserved
-- [ ] No duplicate tags created
-- [ ] Error messages clear
+- [x] Export creates valid JSON
+- [x] Import validates format
+- [x] All relationships preserved
+- [x] No duplicate tags created
+- [x] Error messages clear
 
 ---
 
 ### ✅ Feature 10: Calendar View
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `holidays` table seeded with Singapore holidays
-- [ ] API endpoint: `GET /api/holidays`
-- [ ] Calendar page route: `/calendar`
-- [ ] Calendar generation logic (weeks/days)
-- [ ] Month navigation (prev/next/today buttons)
-- [ ] Day headers (Sun-Sat)
-- [ ] Current day highlighted
-- [ ] Weekend styling
-- [ ] Holiday display with names
-- [ ] Todos appear on due dates
-- [ ] Todo count badge on days
-- [ ] Click day to view todos modal
-- [ ] URL state management (`?month=YYYY-MM`)
+- [x] Database: `holidays` table seeded with Singapore holidays
+- [x] API endpoint: `GET /api/holidays`
+- [x] Calendar page route: `/calendar`
+- [x] Calendar generation logic (weeks/days)
+- [x] Month navigation (prev/next/today buttons)
+- [x] Day headers (Sun-Sat)
+- [x] Current day highlighted
+- [x] Weekend styling
+- [x] Holiday display with names
+- [x] Todos appear on due dates
+- [x] Todo count badge on days
+- [x] Click day to view todos modal
+- [x] Link from main page to calendar
 
 **Testing:**
 - [ ] E2E test: Calendar loads current month
@@ -354,11 +356,11 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Unit test: Calendar generation
 
 **Acceptance Criteria:**
-- [ ] Calendar displays correctly
-- [ ] Holidays shown
-- [ ] Todos on correct dates
-- [ ] Navigation works
-- [ ] Modal shows day's todos
+- [x] Calendar displays correctly
+- [x] Holidays shown
+- [x] Todos on correct dates
+- [x] Navigation works
+- [x] Modal shows day's todos
 
 ---
 
