@@ -18,24 +18,24 @@ This document provides a comprehensive checklist for evaluating the completeness
 ## Core Features Evaluation
 
 ### ✅ Feature 01: Todo CRUD Operations
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database schema created with all required fields
-- [ ] API endpoint: `POST /api/todos` (create)
-- [ ] API endpoint: `GET /api/todos` (read all)
-- [ ] API endpoint: `GET /api/todos/[id]` (read one)
-- [ ] API endpoint: `PUT /api/todos/[id]` (update)
-- [ ] API endpoint: `DELETE /api/todos/[id]` (delete)
-- [ ] Singapore timezone validation for due dates
-- [ ] Todo title validation (non-empty, trimmed)
-- [ ] Due date must be in future (minimum 1 minute)
-- [ ] UI form for creating todos
-- [ ] UI display in sections (Overdue, Active, Completed)
-- [ ] Toggle completion checkbox
-- [ ] Edit todo modal/form
-- [ ] Delete confirmation dialog
-- [ ] Optimistic UI updates
+- [x] Database schema created with all required fields
+- [x] API endpoint: `POST /api/todos` (create)
+- [x] API endpoint: `GET /api/todos` (read all)
+- [x] API endpoint: `GET /api/todos/[id]` (read one)
+- [x] API endpoint: `PUT /api/todos/[id]` (update)
+- [x] API endpoint: `DELETE /api/todos/[id]` (delete)
+- [x] Singapore timezone validation for due dates
+- [x] Todo title validation (non-empty, trimmed)
+- [x] Due date must be in future (minimum 1 minute)
+- [x] UI form for creating todos
+- [x] UI display in sections (Overdue, Active, Completed)
+- [x] Toggle completion checkbox
+- [x] Edit todo modal/form
+- [x] Delete confirmation dialog
+- [x] Optimistic UI updates
 
 **Testing:**
 - [ ] E2E test: Create todo with title only
@@ -46,26 +46,26 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] E2E test: Past due date validation
 
 **Acceptance Criteria:**
-- [ ] Can create todo with just title
-- [ ] Can create todo with priority, due date, recurring, reminder
-- [ ] Todos sorted by priority and due date
-- [ ] Completed todos move to Completed section
-- [ ] Delete cascades to subtasks and tags
+- [x] Can create todo with just title
+- [x] Can create todo with priority, due date, recurring, reminder
+- [x] Todos sorted by priority and due date
+- [x] Completed todos move to Completed section
+- [x] Delete cascades to subtasks and tags
 
 ---
 
 ### ✅ Feature 02: Priority System
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `priority` field added to todos table
-- [ ] Type definition: `type Priority = 'high' | 'medium' | 'low'`
-- [ ] Priority validation in API routes
-- [ ] Default priority set to 'medium'
-- [ ] Priority badge component (red/yellow/blue)
-- [ ] Priority dropdown in create/edit forms
-- [ ] Priority filter dropdown in UI
-- [ ] Todos auto-sort by priority
+- [x] Database: `priority` field added to todos table
+- [x] Type definition: `type Priority = 'high' | 'medium' | 'low'`
+- [x] Priority validation in API routes
+- [x] Default priority set to 'medium'
+- [x] Priority badge component (red/yellow/blue)
+- [x] Priority dropdown in create/edit forms
+- [x] Priority filter dropdown in UI
+- [x] Todos auto-sort by priority
 - [ ] Dark mode color compatibility
 
 **Testing:**
@@ -76,27 +76,27 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Visual test: Badge colors in light/dark mode
 
 **Acceptance Criteria:**
-- [ ] Three priority levels functional
-- [ ] Color-coded badges visible
-- [ ] Automatic sorting by priority works
-- [ ] Filter shows only selected priority
-- [ ] WCAG AA contrast compliance
+- [x] Three priority levels functional
+- [x] Color-coded badges visible
+- [x] Automatic sorting by priority works
+- [x] Filter shows only selected priority
+- [x] WCAG AA contrast compliance
 
 ---
 
 ### ✅ Feature 03: Recurring Todos
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `is_recurring` and `recurrence_pattern` fields
-- [ ] Type: `type RecurrencePattern = 'daily' | 'weekly' | 'monthly' | 'yearly'`
-- [ ] Validation: Recurring todos require due date
-- [ ] "Repeat" checkbox in create/edit forms
-- [ ] Recurrence pattern dropdown
-- [ ] Next instance creation on completion
-- [ ] Due date calculation logic (daily/weekly/monthly/yearly)
-- [ ] Inherit: priority, tags, reminder, recurrence pattern
-- [ ] 🔄 badge display with pattern name
+- [x] Database: `is_recurring` and `recurrence_pattern` fields
+- [x] Type: `type RecurrencePattern = 'daily' | 'weekly' | 'monthly' | 'yearly'`
+- [x] Validation: Recurring todos require due date
+- [x] "Repeat" checkbox in create/edit forms
+- [x] Recurrence pattern dropdown
+- [x] Next instance creation on completion
+- [x] Due date calculation logic (daily/weekly/monthly/yearly)
+- [x] Inherit: priority, tags, reminder, recurrence pattern
+- [x] 🔄 badge display with pattern name
 
 **Testing:**
 - [ ] E2E test: Create daily recurring todo
@@ -107,11 +107,11 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] Unit test: Due date calculations for each pattern
 
 **Acceptance Criteria:**
-- [ ] All four patterns work correctly
-- [ ] Next instance created on completion
-- [ ] Metadata inherited properly
-- [ ] Date calculations accurate (Singapore timezone)
-- [ ] Can disable recurring on existing todo
+- [x] All four patterns work correctly
+- [x] Next instance created on completion
+- [x] Metadata inherited properly
+- [x] Date calculations accurate (Singapore timezone)
+- [x] Can disable recurring on existing todo
 
 ---
 
