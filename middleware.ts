@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from './lib/auth';
 
 export async function middleware(request: NextRequest) {
-  // TEMPORARY: Disable authentication for testing
-  // TODO: Re-enable after WebAuthn implementation is complete
-  return NextResponse.next();
+  // Check if authentication is enabled via environment variable
+  const authEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLED !== 'false';
 
-  /*
+  // If auth is disabled, allow all requests (development mode)
+  if (!authEnabled) {
+    return NextResponse.next();
+  }
+
+  // Get session from request
   const session = await getSessionFromRequest(request);
 
   // Protect routes that require authentication
@@ -15,6 +19,7 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + '/')
   );
 
+  // Redirect unauthenticated users to login page
   if (isProtectedPath && !session) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
@@ -25,7 +30,6 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
-  */
 }
 
 export const config = {

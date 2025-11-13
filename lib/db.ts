@@ -44,6 +44,7 @@ export interface User {
   id: number;
   username: string;
   display_name: string;
+  password_hash?: string;
   created_at: string;
 }
 
@@ -125,6 +126,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     display_name TEXT NOT NULL,
+    password_hash TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -329,11 +331,11 @@ export function calculateNextDueDate(todo: Todo): Date | null {
 
 // User CRUD operations
 export const userDB = {
-  create: (username: string, displayName: string): User => {
+  create: (username: string, displayName: string, passwordHash?: string): User => {
     const stmt = db.prepare(
-      'INSERT INTO users (username, display_name) VALUES (?, ?)'
+      'INSERT INTO users (username, display_name, password_hash) VALUES (?, ?, ?)'
     );
-    const result = stmt.run(username, displayName);
+    const result = stmt.run(username, displayName, passwordHash || null);
     return userDB.getById(Number(result.lastInsertRowid))!;
   },
 

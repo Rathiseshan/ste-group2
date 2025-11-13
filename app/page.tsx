@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Priority, RecurrencePattern, Todo, Tag } from '@/lib/db';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 
@@ -18,10 +19,13 @@ interface RecurrenceOptions {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [todos, setTodos] = useState<TodoWithRelations[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [authEnabled, setAuthEnabled] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ id: number; username: string } | null>(null);
 
   // Form state
   const [formTitle, setFormTitle] = useState('');
@@ -70,6 +74,27 @@ export default function Home() {
 
   // Notifications hook
   const { permission, enabled, setEnabled, requestPermission } = useNotifications();
+
+  // Check auth status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const enabled = process.env.NEXT_PUBLIC_AUTH_ENABLED !== 'false';
+      setAuthEnabled(enabled);
+
+      if (enabled) {
+        try {
+          const response = await fetch('/api/auth/me');
+          if (response.ok) {
+            const data = await response.json();
+            setCurrentUser(data.user);
+          }
+        } catch (error) {
+          console.error('Failed to check auth:', error);
+        }
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     fetchTodos();
@@ -635,6 +660,17 @@ export default function Home() {
     }
   };
 
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      alert('Logout failed. Please try again.');
+    }
+  };
+
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -849,6 +885,15 @@ export default function Home() {
             >
               📥 Import
             </label>
+            {authEnabled && currentUser && (
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                title={`Logout (${currentUser.username})`}
+              >
+                🚪 Logout
+              </button>
+            )}
             <button
               onClick={() => setShowForm(!showForm)}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"

@@ -364,25 +364,39 @@ This document provides a comprehensive checklist for evaluating the completeness
 
 ---
 
-### ✅ Feature 11: Authentication (WebAuthn)
-**Status:** ⬜ Not Started | ⬜ In Progress | ⬜ Complete | ⬜ Verified
+### ✅ Feature 11: Authentication (WebAuthn + Password)
+**Status:** ⬜ Not Started | ⬜ In Progress | ✅ Complete | ⬜ Verified
 
 **Implementation Checklist:**
-- [ ] Database: `users` and `authenticators` tables
-- [ ] API endpoint: `POST /api/auth/register-options`
-- [ ] API endpoint: `POST /api/auth/register-verify`
-- [ ] API endpoint: `POST /api/auth/login-options`
-- [ ] API endpoint: `POST /api/auth/login-verify`
-- [ ] API endpoint: `POST /api/auth/logout`
-- [ ] API endpoint: `GET /api/auth/me`
-- [ ] Auth utility: `lib/auth.ts` (createSession, getSession, deleteSession)
-- [ ] Middleware: `middleware.ts` (protect routes)
-- [ ] Login page: `/login`
-- [ ] Registration flow
-- [ ] Login flow
-- [ ] Logout button
-- [ ] Session cookie (HTTP-only, 7-day expiry)
-- [ ] Protected routes redirect to login
+- [x] Database: `users` and `authenticators` tables
+- [x] Database: `password_hash` column in users table
+- [x] API endpoint: `POST /api/auth/register-options` (passkey)
+- [x] API endpoint: `POST /api/auth/register-verify` (passkey)
+- [x] API endpoint: `POST /api/auth/login-options` (passkey)
+- [x] API endpoint: `POST /api/auth/login-verify` (passkey)
+- [x] API endpoint: `POST /api/auth/password-register` (password)
+- [x] API endpoint: `POST /api/auth/password-login` (password)
+- [x] API endpoint: `POST /api/auth/logout`
+- [x] API endpoint: `GET /api/auth/me`
+- [x] Auth utility: `lib/auth.ts` (createSession, getSession, deleteSession)
+- [x] Middleware: `middleware.ts` (protect routes)
+- [x] Login page: `/login` with orange/pink gradient design
+- [x] Registration flow with WebAuthn
+- [x] Registration flow with password
+- [x] Login flow with WebAuthn
+- [x] Login flow with password
+- [x] Logout button in header
+- [x] Session cookie (HTTP-only, 7-day expiry)
+- [x] Protected routes redirect to login
+- [x] Environment variable toggle (`NEXT_PUBLIC_AUTH_ENABLED`)
+- [x] Environment variable for auth mode (`NEXT_PUBLIC_AUTH_MODE`)
+- [x] Auth disabled mode for development
+- [x] WebAuthn browser support detection
+- [x] User-friendly error messages
+- [x] Modern gradient UI design matching screenshot
+- [x] Password hashing with PBKDF2
+- [x] PBKDF2 password verification
+- [x] PRP documentation created (PRPs/11-authentication-webauthn.md)
 
 **Testing:**
 - [ ] E2E test: Register new user (virtual authenticator)
@@ -390,14 +404,20 @@ This document provides a comprehensive checklist for evaluating the completeness
 - [ ] E2E test: Logout clears session
 - [ ] E2E test: Protected route redirects unauthenticated
 - [ ] E2E test: Login page redirects authenticated
+- [ ] E2E test: Password registration and login
 - [ ] Unit test: JWT creation/verification
+- [ ] Unit test: Password hashing and verification
 
 **Acceptance Criteria:**
-- [ ] Registration works with passkey
-- [ ] Login works with passkey
-- [ ] Session persists 7 days
-- [ ] Logout clears session immediately
-- [ ] Protected routes secured
+- [x] Registration works with passkey
+- [x] Registration works with password
+- [x] Login works with passkey
+- [x] Login works with password
+- [x] Session persists 7 days
+- [x] Logout clears session immediately
+- [x] Protected routes secured
+- [x] Password minimum 6 characters enforced
+- [x] UI matches orange/pink gradient design
 
 ---
 
